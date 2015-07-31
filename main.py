@@ -34,16 +34,16 @@ def check_queue_and_modlog(mod):#check modqueue for comments to add to bad corpu
         if "Comment" in str(comment.__class__):#is the item a comment?
             if comment.mod_reports:#does the item have moderator reports?
                 for report in comment.mod_reports:
-                    reportmod = report[0][1]#moderator name from report
+                    reportmod = report[1]#moderator name from report
                     if comment.id not in already_done and 'MrRogersbot' not in reportmod and 'AutoModerator' not in reportmod: #ignore comments that have already been looked at, and comments reported by the bot an AM
-                        reason = report[0][0]#report reason
+                        reason = report[0]#report reason
                         already_done.add(comment.id)
                         text = comment.body.encode('ascii', 'ignore') #get the comment text
                         if ignorecomment(str(comment.subreddit),reason) == False: #check to see if the report reason is logged for this subreddit
                             try:
                                 reason = reasonsmap[reason] #convert default report reasons to custom ones
                             except KeyError: #if "other" reason not in the conversion table
-                                print "Report reason not found: " + str(comment.mod_reports[0][0])
+                                print "Report reason not found: " + str(reason)
                                 reason = 'other'
                             logremoval(reportmod,comment,reason,mod) #log the mod report to the database
                             addtocorpus(reason, text, comment.id) #add the comment text to the appropriate corpus
