@@ -35,19 +35,21 @@ def check_queue_and_modlog(mod):#check modqueue for comments to add to bad corpu
             if comment.mod_reports:#does the item have moderator reports?
                 for report in comment.mod_reports:
                     reportmod = report[1]#moderator name from report
-                    if comment.id not in already_done and 'MrRogersbot' not in reportmod and 'AutoModerator' not in reportmod: #ignore comments that have already been looked at, and comments reported by the bot an AM
+                    if comment.id not in already_done and 'AutoModerator' not in reportmod: #ignore comments that have already been looked at, and comments reported by the bot an AM
                         reason = report[0]#report reason
                         already_done.add(comment.id)
-                        text = comment.body.encode('ascii', 'ignore') #get the comment text
+                        text = comment.body.encode('ascii', 'ignore') #get the comment text                        print 'ignore comment '+ ignorecomment(str(comment.subreddit),reason)
                         if ignorecomment(str(comment.subreddit),reason) == False: #check to see if the report reason is logged for this subreddit
                             try:
                                 reason = reasonsmap[reason] #convert default report reasons to custom ones
                             except KeyError: #if "other" reason not in the conversion table
                                 print "Report reason not found: " + str(reason)
                                 reason = 'other'
-                            logremoval(reportmod,comment,reason,mod) #log the mod report to the database
+                            print 'removing'
                             addtocorpus(reason, text, comment.id) #add the comment text to the appropriate corpus
+                            logremoval(reportmod,comment,str(report[0]),mod) #log the mod report to the database
                             handle_comment(comment,mod) #remove the comment
+                            print 'removed '+reason
     #check mod log for comments to add to corpus
     for comment in mod.get_mod_log('mod',mod=None,action='approvecomment'):  # approved comments are ham
         if comment.id not in already_done: #only add to the ham corpus once
@@ -78,8 +80,8 @@ def check_queue_and_modlog(mod):#check modqueue for comments to add to bad corpu
                 except:
                     pass
 
-def logremoval(user,comment,reportreason,mod): # add the report and removal to the log and update the leaderboard
-    user = mod.get_redditor(user)
+def logremoval(user,comment,reportreason,modacct): # add the report and removal to the log and update the leaderboard
+    user = modacct.get_redditor(user)
     person,nothing = People.objects.get_or_create(redditid=user.id,username=user.name) #get person from database or create
     print person
     person.save()
@@ -135,6 +137,7 @@ def ignorecomment(subreddit,reason): #see if a reported comment should be ignore
     if commentsettings['usebuiltinreasons'] == True: #map the builtin reasons to custom reasons
         try:
             reasons = reasonsmap[reason]
+            return False
         except KeyError:
             if commentsettings['ignoreunmappedreasons'] == True: #for subs that use 'other' mod report reasons.
                 return True     # Only remove and log comments with report reasons that match mapped reasons
